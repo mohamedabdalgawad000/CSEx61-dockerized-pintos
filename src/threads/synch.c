@@ -210,7 +210,7 @@ lock_acquire (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
-/*
+
   enum intr_level old_level = intr_disable ();
 
   struct thread* current_thread = thread_current();
@@ -226,18 +226,18 @@ lock_acquire (struct lock *lock)
 
   // Donate Priority to all holders -> nested 
   // Add the thread to the donations_list of all parents
-  while( temp->holder != NULL ) {
-
+  while( temp != NULL && temp->holder != NULL ) {
+    // printf("Donating priority to %d from %d\n", temp->holder->effective_priority, current_thread->effective_priority);
     if( temp->holder->effective_priority < current_thread->effective_priority ) {
       temp->holder->effective_priority = current_thread->effective_priority;
     }
-    list_insert_ordered(&temp->holder->donations_list, &temp->holder->elem, comparator, NULL);
-    temp = temp->holder;
+    list_insert_ordered(&temp->holder->donations_list, &current_thread->donation, comparator, NULL);
+    temp = temp->holder->wait_on_lock;
 
   }
 
   intr_set_level (old_level);
-*/
+
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
 }
@@ -290,7 +290,7 @@ lock_release (struct lock *lock)
 
     maxThread->wait_on_lock = NULL;
 
-    list_remove(&maxThread->elem);
+    list_remove(&maxThread->donation);
 
     lock->holder->effective_priority = maxThread2->effective_priority;
 
