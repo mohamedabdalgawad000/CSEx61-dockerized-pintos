@@ -242,10 +242,8 @@ lock_acquire (struct lock *lock)
 
   }
 
-
-
-
   intr_set_level (old_level);
+
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
   list_insert_ordered (&thread_current ()->locks_list, &lock->elem, compare_locks, NULL);
@@ -283,8 +281,20 @@ lock_release (struct lock *lock)
 
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
-  
 
+  enum intr_level old_level = intr_disable ();
+  
+  list_remove (&lock->elem);
+
+  if( list_size(&lock->semaphore.waiters) == 1 ) {
+    lock->max_thread_priority = -1;
+  } else if ( list_size(&lock->semaphore.waiters) > 1 ) {
+    struct thread* thread_2nd = list_entry( list_begin(&lock->semaphore.waiters)->next, struct thread, elem);
+
+    lock->max_thread_priority = thread_2nd->effective_priority;
+  }
+
+  intr_set_level (old_level);
 
   lock->holder = NULL;
   sema_up (&lock->semaphore);
@@ -395,7 +405,7 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 
 bool comparator (const struct list_elem *list_elem_1, const struct list_elem *list_elem_2, void *aux UNUSED)
 {
-  return list_entry (list_elem_1, struct thread, elem)->priority >= list_entry (list_elem_2, struct thread, elem)->priority;
+  return list_entry (list_elem_1, struct thread, elem)->effective_priority >= list_entry (list_elem_2, struct thread, elem)->effective_priority;
 }
 
 bool compare_locks (const struct list_elem *lock1, const struct list_elem *lock2, void * aux  UNUSED)
