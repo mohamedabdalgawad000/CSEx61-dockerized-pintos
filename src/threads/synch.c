@@ -216,29 +216,7 @@ lock_acquire (struct lock *lock)
   enum intr_level old_level = intr_disable ();
 
 
-  struct thread* current_thread = thread_current();
 
-  struct lock* temp = lock;
-
-  // Stone waited lock
-  if( lock->holder != NULL ) {
-
-    current_thread->wait_on_lock = lock;
-  }
-
-  // Donate Priority to all holders -> nested 
-  // Add the thread to the donations_list of all parents
-  while( temp != NULL && temp->holder != NULL ) {
-    // printf("Donating priority to %d from %d\n", temp->holder->effective_priority, current_thread->effective_priority);
-    if( temp->holder->effective_priority < current_thread->effective_priority ) {
-      temp->holder->effective_priority = current_thread->effective_priority;
-    }
-    list_insert_ordered(&temp->holder->donations_list, &current_thread->donation, comparator, NULL);
-    temp = temp->holder->wait_on_lock;
-
-  }
-
-  
 
   intr_set_level (old_level);
   sema_down (&lock->semaphore);
@@ -280,35 +258,6 @@ lock_release (struct lock *lock)
   
   enum intr_level old_level = intr_disable ();
 
-  // After the main thread leaves the lock it has to restore its own priorty
-  if( !list_empty(&lock->semaphore.waiters)){
-    
-    struct list_elem* maxThreadListItem = list_max (&lock->semaphore.waiters, comparator, NULL);
-
-    struct thread *maxThread = list_entry (maxThreadListItem,struct thread, elem);
-
-    list_remove(&maxThread->donation);
-
-    // if( list_size(&lock->holder->donations_list) > 0){
-      
-    //   struct list_elem* maxThreadListItem2 = list_pop_front (&lock->holder->donations_list);
-
-    //   struct thread *maxThread2 = list_entry (maxThreadListItem2,struct thread, donation);
-
-    //   lock->holder->effective_priority = maxThread2->effective_priority;
-
-
-    //   // thread_foreach(remove_from_donations, NULL);
-    //   // list_remove(&maxThread2->donation);
-    printf("\n%d\n", maxThread->effective_priority);
-
-    // } else {
-    //   lock->holder->effective_priority = lock->holder->priority;
-    // }
-
-
-    
-  }
 
   intr_set_level (old_level);
   lock->holder = NULL;
