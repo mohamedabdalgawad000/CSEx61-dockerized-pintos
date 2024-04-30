@@ -46,6 +46,8 @@ bool comparator(const struct list_elem *list_elem_1,
                 const struct list_elem *list_elem_2,
                 void *aux UNUSED);
 
+void remove_from_donations(struct thread *t, void *aux UNUSED);
+
 void
 sema_init (struct semaphore *sema, unsigned value) 
 {
@@ -210,8 +212,9 @@ lock_acquire (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
-/*
+
   enum intr_level old_level = intr_disable ();
+
 
   struct thread* current_thread = thread_current();
 
@@ -221,7 +224,6 @@ lock_acquire (struct lock *lock)
   if( lock->holder != NULL ) {
 
     current_thread->wait_on_lock = lock;
-    msg("asdf");
   }
 
   // Donate Priority to all holders -> nested 
@@ -236,8 +238,9 @@ lock_acquire (struct lock *lock)
 
   }
 
+  
+
   intr_set_level (old_level);
-  */
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
 }
@@ -273,8 +276,7 @@ lock_release (struct lock *lock)
 
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
-
-  /*
+  
   enum intr_level old_level = intr_disable ();
 
   // After the main thread leaves the lock it has to restore its own priorty
@@ -284,20 +286,28 @@ lock_release (struct lock *lock)
 
     struct thread *maxThread = list_entry (maxThreadListItem,struct thread, elem);
 
-    struct list_elem* maxThreadListItem2 = list_max (&lock->holder->donations_list, comparator, NULL);
-
-    struct thread *maxThread2 = list_entry (maxThreadListItem2,struct thread, donation);
-
     maxThread->wait_on_lock = NULL;
 
-    list_remove(&maxThread->donation);
+    if( list_size(&lock->holder->donations_list) != 0){
+      
+      struct list_elem* maxThreadListItem2 = list_max (&lock->holder->donations_list, comparator, NULL);
 
-    lock->holder->effective_priority = maxThread2->effective_priority;
+      struct thread *maxThread2 = list_entry (maxThreadListItem2,struct thread, donation);
+    printf("\n%d\n", current_thread->effective_priority);
 
+      lock->holder->effective_priority = maxThread2->effective_priority;
+
+      thread_foreach(remove_from_donations,NULL);
+
+    } else {
+      lock->holder->effective_priority = lock->holder->priority;
+    }
+
+
+    
   }
 
   intr_set_level (old_level);
-*/
   lock->holder = NULL;
   sema_up (&lock->semaphore);
 }
@@ -412,4 +422,12 @@ comparator (const struct list_elem *list_elem_1,
 {
   return list_entry (list_elem_1, struct thread, elem)->effective_priority >=
          list_entry (list_elem_2, struct thread, elem)->effective_priority;
+}
+
+void remove_from_donations(struct thread *t, void *aux UNUSED){
+  ASSERT( t != NULL );
+  
+  if( t->wait_on_lock != NULL && t->wait_on_lock->holder != NULL && t->wait_on_lock->holder == thread_current() ) {
+    list_remove(&t->donation);
+  }
 }
