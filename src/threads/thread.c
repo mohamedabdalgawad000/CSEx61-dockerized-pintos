@@ -14,6 +14,10 @@
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
+#include <list.h>
+
+void preemption(void);
+
 
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
@@ -189,6 +193,14 @@ thread_create (const char *name, int priority,
   kf->function = function;
   kf->aux = aux;
 
+
+  // struct lock *lock = (struct lock*) aux;
+
+  // if( lock->holder != NULL ){
+
+  //   lock->holder->effective_priority = priority > lock->holder->effective_priority ? priority : lock->holder->effective_priority ;
+  // }
+
   /* Stack frame for switch_entry(). */
   ef = alloc_frame (t, sizeof *ef);
   ef->eip = (void (*) (void)) kernel_thread;
@@ -200,6 +212,10 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
+
+  // Check if the main thread is still the highest proirity thread
+  if( !list_empty (&ready_list) && list_entry (list_back (&ready_list), struct thread, elem)->effective_priority > thread_get_priority () )
+    thread_yield();
 
   return tid;
 }
@@ -237,8 +253,11 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  // list_push_back (&ready_list, &t->elem);
+  list_insert_ordered(&ready_list, &t->elem, comparator, NULL);
   t->status = THREAD_READY;
+
+  // schedule();
   intr_set_level (old_level);
 }
 
@@ -335,14 +354,37 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  enum intr_level old_level = intr_disable();
+
+    struct thread* r_t = thread_current();
+
+    r_t->priority = new_priority;
+
+    // If there is no donations return the original priority
+    if (list_empty (&r_t->donations_list))
+      r_t->effective_priority = new_priority;
+    else {
+          // Get the highest priority from the donations list and update the priorities
+      	  int lock_priority = list_entry (list_max (&r_t->donations_list,comparator, NULL),struct thread, elem)->effective_priority;
+          r_t->effective_priority = new_priority > lock_priority ? new_priority : lock_priority;
+
+    }
+
+    thread_current ()->priority = new_priority;
+    
+  intr_set_level (old_level);
+
+  // Check if the main thread is still the highest proirity thread
+  if( !list_empty (&ready_list) && list_entry (list_back (&ready_list), struct thread, elem)->effective_priority > thread_get_priority () )
+    thread_yield();
+
 }
 
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void) 
 {
-  return thread_current ()->priority;
+  return thread_current ()->effective_priority;
 }
 
 /* Sets the current thread's nice value to NICE. */
@@ -444,6 +486,7 @@ static bool
 is_thread (struct thread *t)
 {
   return t != NULL && t->magic == THREAD_MAGIC;
+  // return t != NULL;
 }
 
 /* Does basic initialization of T as a blocked thread named
@@ -462,6 +505,13 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+
+
+  t->effective_priority = priority;
+  list_init (&t->donations_list);
+  t->wait_on_lock = NULL;
+
+
   t->magic = THREAD_MAGIC;
 
   old_level = intr_disable ();
@@ -582,3 +632,10 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+
+void preemption(void) {
+
+  
+
+}
