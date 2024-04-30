@@ -361,12 +361,12 @@ thread_set_priority (int new_priority)
     struct thread* r_t = thread_current();
 
     r_t->priority = new_priority;
-    // If there is no donations set to the original priority
-    if (list_empty (&r_t->donations_list))
+    // If there is no locks set to the original priority
+    if (list_empty (&r_t->locks_list))
       r_t->effective_priority = new_priority;
     else {
           // Get the highest priority from the donations list and update the priority
-      	  int lock_priority = list_entry (list_max (&r_t->donations_list,comparator, NULL),struct thread, donation)->effective_priority;
+      	  int lock_priority = list_entry (list_max (&r_t->locks_list,compare_locks, NULL),struct lock, elem)->max_thread_priority;
           r_t->effective_priority = new_priority > lock_priority ? new_priority : lock_priority;
 
     }
@@ -509,7 +509,7 @@ init_thread (struct thread *t, const char *name, int priority)
 
 
   t->effective_priority = priority;
-  list_init (&t->donations_list);
+  list_init (&t->locks_list);
   t->wait_on_lock = NULL;
 
 

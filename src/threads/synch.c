@@ -367,19 +367,12 @@ cond_broadcast (struct condition *cond, struct lock *lock)
     cond_signal (cond, lock);
 }
 
-bool
-comparator (const struct list_elem *list_elem_1,
-                const struct list_elem *list_elem_2,
-                void *aux UNUSED)
+bool comparator (const struct list_elem *list_elem_1, const struct list_elem *list_elem_2, void *aux UNUSED)
 {
-  return list_entry (list_elem_1, struct thread, elem)->priority >=
-         list_entry (list_elem_2, struct thread, elem)->priority;
+  return list_entry (list_elem_1, struct thread, elem)->priority >= list_entry (list_elem_2, struct thread, elem)->priority;
 }
 
-void remove_from_donations(struct thread *t, void *aux UNUSED){
-  ASSERT( t != NULL );
-  
-  if( t->wait_on_lock != NULL && t->wait_on_lock->holder != NULL && t->wait_on_lock->holder == thread_current() ) {
-    list_remove(&t->donation);
-  }
+bool compare_locks (const struct list_elem *lock1, const struct list_elem *lock2, void * aux  UNUSED)
+{
+  return list_entry (lock1, struct lock, elem)->max_thread_priority >= list_entry (lock2, struct lock, elem)->max_thread_priority;
 }
