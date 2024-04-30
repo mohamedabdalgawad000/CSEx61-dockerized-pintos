@@ -71,8 +71,8 @@ sema_down (struct semaphore *sema)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  // while (sema->value == 0) 
-  while (sema->value <= 0) 
+  while (sema->value == 0) 
+  // while (sema->value <= 0) 
     {
       list_insert_ordered (&sema->waiters, &thread_current ()->elem, comparator, NULL);
       thread_block ();
@@ -131,6 +131,8 @@ sema_up (struct semaphore *sema)
 
   sema->value++;
   intr_set_level (old_level);
+
+  after_thread_unblock();
 }
 
 static void sema_test_helper (void *sema_);

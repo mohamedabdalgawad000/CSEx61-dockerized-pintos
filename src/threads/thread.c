@@ -207,14 +207,17 @@ thread_create (const char *name, int priority,
   sf = alloc_frame (t, sizeof *sf);
   sf->eip = switch_entry;
   sf->ebp = 0;
-
   /* Add to run queue. */
   thread_unblock (t);
 
   // Check if the main thread is still the highest proirity thread
-  if( !list_empty (&ready_list) && list_entry (list_front (&ready_list), struct thread, elem)->effective_priority > thread_get_priority () )
-    thread_yield();
+  // if( !list_empty (&ready_list) && list_entry (list_front (&ready_list), struct thread, elem)->priority > thread_get_priority () )
+  //   thread_yield();
 
+  after_thread_unblock();
+
+  // if(!thread_get_priority ())
+      // printf("%d",list_entry (list_front (&ready_list), struct thread, elem)->effective_priority );
   return tid;
 }
 
@@ -357,7 +360,6 @@ thread_set_priority (int new_priority)
     struct thread* r_t = thread_current();
 
     r_t->priority = new_priority;
-
     // If there is no donations set to the original priority
     if (list_empty (&r_t->donations_list))
       r_t->effective_priority = new_priority;
@@ -372,10 +374,10 @@ thread_set_priority (int new_priority)
     
   intr_set_level (old_level);
 
+  
   // Check if the main thread is still the highest proirity thread
   if( !list_empty (&ready_list) && list_entry (list_front (&ready_list), struct thread, elem)->effective_priority > thread_get_priority () )
     thread_yield();
-
 }
 
 /* Returns the current thread's priority. */
@@ -540,8 +542,9 @@ next_thread_to_run (void)
 {
   if (list_empty (&ready_list))
     return idle_thread;
-  else
+  else{
     return list_entry (list_pop_front (&ready_list), struct thread, elem);
+  }
 }
 
 /* Completes a thread switch by activating the new thread's page
@@ -603,11 +606,10 @@ schedule (void)
   struct thread *cur = running_thread ();
   struct thread *next = next_thread_to_run ();
   struct thread *prev = NULL;
-
   ASSERT (intr_get_level () == INTR_OFF);
   ASSERT (cur->status != THREAD_RUNNING);
-  ASSERT (is_thread (next));
 
+    // printf("__%d", next->effective_priority);
   if (cur != next)
     prev = switch_threads (cur, next);
   thread_schedule_tail (prev);
@@ -631,3 +633,7 @@ allocate_tid (void)
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
+void after_thread_unblock(void) {
+  if( !list_empty (&ready_list) && list_entry (list_front (&ready_list), struct thread, elem)->effective_priority > thread_get_priority () )
+    thread_yield();
+}

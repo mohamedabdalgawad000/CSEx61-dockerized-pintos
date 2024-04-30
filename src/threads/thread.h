@@ -149,5 +149,6 @@ bool comparator(const struct list_elem *list_elem_1,
                 const struct list_elem *list_elem_2,
                 void *aux UNUSED);
 
+void after_thread_unblock (void);
 
 #endif /* threads/thread.h */
