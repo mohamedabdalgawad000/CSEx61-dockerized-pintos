@@ -363,7 +363,7 @@ thread_set_priority (int new_priority)
     r_t->priority = new_priority;
     // If there is no locks set to the original priority
     if (list_empty (&r_t->locks_list))
-      r_t->effective_priority = new_priority;
+      r_t->effective_priority = r_t->priority;
     else {
           // Get the highest priority from the donations list and update the priority
       	  int lock_priority = list_entry (list_max (&r_t->locks_list,compare_locks, NULL),struct lock, elem)->max_thread_priority;

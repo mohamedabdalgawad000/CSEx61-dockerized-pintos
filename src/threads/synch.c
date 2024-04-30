@@ -195,6 +195,7 @@ lock_init (struct lock *lock)
   ASSERT (lock != NULL);
 
   lock->holder = NULL;
+  lock->max_thread_priority = -1;
   sema_init (&lock->semaphore, 1);
 }
 
@@ -216,12 +217,39 @@ lock_acquire (struct lock *lock)
   enum intr_level old_level = intr_disable ();
 
 
+  struct thread* current_thread = thread_current();
+
+  struct lock* temp = lock;
+
+
+  // Lock is free -> acquire it
+  if( lock->holder != NULL ) {
+
+    current_thread->wait_on_lock = lock;
+
+    lock->max_thread_priority = current_thread->effective_priority > lock->max_thread_priority ? current_thread->effective_priority : lock->max_thread_priority;
+
+    // Donate Priority to all holders -> nested 
+    // Add the thread to the donations_list of all parents
+    while( temp != NULL && temp->holder != NULL ) {
+      // printf("Donating priority to %d from %d\n", temp->holder->effective_priority, current_thread->effective_priority);
+      if( temp->holder->effective_priority < current_thread->effective_priority ) {
+        temp->holder->effective_priority = current_thread->effective_priority;
+      }
+      temp = temp->holder->wait_on_lock;
+
+    }
+
+  }
+
+
 
 
   intr_set_level (old_level);
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
-  lock->holder->wait_on_lock = NULL;
+  list_insert_ordered (&thread_current ()->locks_list, &lock->elem, compare_locks, NULL);
+  thread_current()->wait_on_lock = NULL;
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -256,10 +284,8 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
   
-  enum intr_level old_level = intr_disable ();
 
 
-  intr_set_level (old_level);
   lock->holder = NULL;
   sema_up (&lock->semaphore);
 }
