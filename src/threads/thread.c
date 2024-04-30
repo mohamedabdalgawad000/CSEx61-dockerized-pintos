@@ -16,8 +16,6 @@
 #endif
 #include <list.h>
 
-void preemption(void);
-
 
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
@@ -214,7 +212,7 @@ thread_create (const char *name, int priority,
   thread_unblock (t);
 
   // Check if the main thread is still the highest proirity thread
-  if( !list_empty (&ready_list) && list_entry (list_back (&ready_list), struct thread, elem)->effective_priority > thread_get_priority () )
+  if( !list_empty (&ready_list) && list_entry (list_front (&ready_list), struct thread, elem)->effective_priority > thread_get_priority () )
     thread_yield();
 
   return tid;
@@ -327,7 +325,7 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered (&ready_list, &cur->elem, comparator, NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -360,7 +358,7 @@ thread_set_priority (int new_priority)
 
     r_t->priority = new_priority;
 
-    // If there is no donations return the original priority
+    // If there is no donations set to the original priority
     if (list_empty (&r_t->donations_list))
       r_t->effective_priority = new_priority;
     else {
@@ -375,7 +373,7 @@ thread_set_priority (int new_priority)
   intr_set_level (old_level);
 
   // Check if the main thread is still the highest proirity thread
-  if( !list_empty (&ready_list) && list_entry (list_back (&ready_list), struct thread, elem)->effective_priority > thread_get_priority () )
+  if( !list_empty (&ready_list) && list_entry (list_front (&ready_list), struct thread, elem)->effective_priority > thread_get_priority () )
     thread_yield();
 
 }
@@ -633,9 +631,3 @@ allocate_tid (void)
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
-
-void preemption(void) {
-
-  
-
-}
