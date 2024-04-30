@@ -243,6 +243,7 @@ lock_acquire (struct lock *lock)
   intr_set_level (old_level);
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
+  lock->holder->wait_on_lock = NULL;
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -280,28 +281,30 @@ lock_release (struct lock *lock)
   enum intr_level old_level = intr_disable ();
 
   // After the main thread leaves the lock it has to restore its own priorty
-  if( list_size(&lock->semaphore.waiters) != 0){
+  if( !list_empty(&lock->semaphore.waiters)){
     
     struct list_elem* maxThreadListItem = list_max (&lock->semaphore.waiters, comparator, NULL);
 
     struct thread *maxThread = list_entry (maxThreadListItem,struct thread, elem);
 
-    maxThread->wait_on_lock = NULL;
+    list_remove(&maxThread->donation);
 
-    if( list_size(&lock->holder->donations_list) != 0){
+    // if( list_size(&lock->holder->donations_list) > 0){
       
-      struct list_elem* maxThreadListItem2 = list_max (&lock->holder->donations_list, comparator, NULL);
+    //   struct list_elem* maxThreadListItem2 = list_pop_front (&lock->holder->donations_list);
 
-      struct thread *maxThread2 = list_entry (maxThreadListItem2,struct thread, donation);
-    printf("\n%d\n", current_thread->effective_priority);
+    //   struct thread *maxThread2 = list_entry (maxThreadListItem2,struct thread, donation);
 
-      lock->holder->effective_priority = maxThread2->effective_priority;
+    //   lock->holder->effective_priority = maxThread2->effective_priority;
 
-      thread_foreach(remove_from_donations,NULL);
 
-    } else {
-      lock->holder->effective_priority = lock->holder->priority;
-    }
+    //   // thread_foreach(remove_from_donations, NULL);
+    //   // list_remove(&maxThread2->donation);
+    printf("\n%d\n", maxThread->effective_priority);
+
+    // } else {
+    //   lock->holder->effective_priority = lock->holder->priority;
+    // }
 
 
     
@@ -420,8 +423,8 @@ comparator (const struct list_elem *list_elem_1,
                 const struct list_elem *list_elem_2,
                 void *aux UNUSED)
 {
-  return list_entry (list_elem_1, struct thread, elem)->effective_priority >=
-         list_entry (list_elem_2, struct thread, elem)->effective_priority;
+  return list_entry (list_elem_1, struct thread, elem)->priority >=
+         list_entry (list_elem_2, struct thread, elem)->priority;
 }
 
 void remove_from_donations(struct thread *t, void *aux UNUSED){

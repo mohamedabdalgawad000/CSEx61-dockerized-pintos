@@ -366,7 +366,7 @@ thread_set_priority (int new_priority)
       r_t->effective_priority = new_priority;
     else {
           // Get the highest priority from the donations list and update the priority
-      	  int lock_priority = list_entry (list_max (&r_t->donations_list,comparator, NULL),struct thread, elem)->effective_priority;
+      	  int lock_priority = list_entry (list_max (&r_t->donations_list,comparator, NULL),struct thread, donation)->effective_priority;
           r_t->effective_priority = new_priority > lock_priority ? new_priority : lock_priority;
 
     }
