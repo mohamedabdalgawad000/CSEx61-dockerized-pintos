@@ -210,8 +210,9 @@ lock_acquire (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
- /*
+/*
   enum intr_level old_level = intr_disable ();
+
   struct thread* current_thread = thread_current();
 
   struct lock* temp = lock;
@@ -234,6 +235,7 @@ lock_acquire (struct lock *lock)
     temp = temp->holder;
 
   }
+
   intr_set_level (old_level);
 */
   sema_down (&lock->semaphore);
@@ -272,7 +274,7 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
 
-/*
+
   enum intr_level old_level = intr_disable ();
 
   // After the main thread leaves the lock it has to restore its own priorty
@@ -282,17 +284,20 @@ lock_release (struct lock *lock)
 
     struct thread *maxThread = list_entry (maxThreadListItem,struct thread, elem);
 
+    struct list_elem* maxThreadListItem2 = list_max (&lock->holder->donations_list, comparator, NULL);
+
+    struct thread *maxThread2 = list_entry (maxThreadListItem2,struct thread, donation);
+
     maxThread->wait_on_lock = NULL;
 
-    list_remove();
+    list_remove(&maxThread->elem);
 
-    if( maxThread->effective_priority == lock->holder->effective_priority )
-        lock->holder->effective_priority = lock->holder->effective_priority;
+    lock->holder->effective_priority = maxThread2->effective_priority;
 
   }
 
   intr_set_level (old_level);
-*/
+
   lock->holder = NULL;
   sema_up (&lock->semaphore);
 }

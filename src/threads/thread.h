@@ -95,6 +95,8 @@ struct thread
       
    struct lock* wait_on_lock;
 
+   struct list_elem donation;           /* List element for all threads list. */
+
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
