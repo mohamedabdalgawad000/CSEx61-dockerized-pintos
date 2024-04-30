@@ -38,6 +38,8 @@ test_priority_donate_one (void)
   msg ("This thread should have priority %d.  Actual priority: %d.",
        PRI_DEFAULT + 2, thread_get_priority ());
   lock_release (&lock);
+  msg ("This thread should have priority %d.  Actual priority: %d.",
+      PRI_DEFAULT + 2, thread_get_priority ());
   msg ("acquire2, acquire1 must already have finished, in that order.");
   msg ("This should be the last line before finishing this test.");
 }
