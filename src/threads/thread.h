@@ -91,26 +91,14 @@ struct thread
     
     int effective_priority;
 
-    struct list donations_list;
+    struct list locks_list;
       
    struct lock* wait_on_lock;
-
-   struct list_elem donation;           /* List element for all threads list. */
 
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
-    struct list_elem elem; 
-    
-                 /* List element. */
-
-                 /* Solution Code */
-    int64_t ticks_blocked;              /* Ticks that the thread need to be blocked. */
-   //  int base_priority;                  /* Used to record thread's priority when it's not being donated. */
-    struct list locks_holding;          /* List of locks the thread is holding. */
-   //  struct lock *lock_waiting4;         /* The lock the thread is waiting for. */
-    int nice;                           /* Nice value. */
-   //  fixed_t recent_cpu;                 /* Recent CPU. */
+    struct list_elem elem;              /* List element. */
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -162,5 +150,7 @@ bool comparator(const struct list_elem *list_elem_1,
                 void *aux UNUSED);
 
 void after_thread_unblock (void);
+
+void update_priority (struct thread *t);
 
 #endif /* threads/thread.h */
