@@ -100,7 +100,17 @@ struct thread
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
-    struct list_elem elem;              /* List element. */
+    struct list_elem elem; 
+    
+                 /* List element. */
+
+                 /* Solution Code */
+    int64_t ticks_blocked;              /* Ticks that the thread need to be blocked. */
+   //  int base_priority;                  /* Used to record thread's priority when it's not being donated. */
+    struct list locks_holding;          /* List of locks the thread is holding. */
+   //  struct lock *lock_waiting4;         /* The lock the thread is waiting for. */
+    int nice;                           /* Nice value. */
+   //  fixed_t recent_cpu;                 /* Recent CPU. */
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
