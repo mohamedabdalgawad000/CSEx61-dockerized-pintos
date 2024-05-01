@@ -636,13 +636,48 @@ void after_thread_unblock(void) {
 
 
 void update_priority (struct thread *t) {
+  enum intr_level old_level =  intr_disable();
+    // list_sort(&t->locks_list, compare_locks, NULL);
+
   if( !list_empty (&t->locks_list) ){
-    int lock_priority = list_entry (list_max (&t->locks_list, compare_locks, NULL),struct lock, elem)->max_thread_priority;
-    // if( t->effective_priority < t->priority || t->effective_priority < lock_priority )
+    int lock_priority = -1;
+
+    struct list_elem *e1;
+
+    ASSERT (intr_get_level () == INTR_OFF);
+
+    for (e1 = list_begin (&t->locks_list); e1 != list_end (&t->locks_list); e1 = list_next (e1))
+      {
+        struct lock *l1 = list_entry (e1, struct lock, elem);
+          
+        lock_priority = l1->max_thread_priority > lock_priority ? l1->max_thread_priority : lock_priority;
+      }
+  
+
+    // int lock_priority = list_entry (list_max (&t->locks_list, compare_locks, NULL),struct lock, elem)->max_thread_priority;
+    // printf("\npriority: %d, efficitive %d, tid: %d\n", thread_current()->priority, thread_current()->effective_priority, lock_priority);
+
       t->effective_priority = t->priority > lock_priority ? t->priority : lock_priority;
-    // printf("\n%d\n", t->effective_priority);
-    
   }
   else
     t->effective_priority = t->priority;
+    
+  intr_set_level (old_level);
+}
+
+
+void
+thread_donate_priority(struct thread *t)
+{
+  enum intr_level old_level = intr_disable();
+  update_priority(t);
+ 
+  /* Remove the old t and insert the new one in order */ 
+  if (t->status == THREAD_READY)
+  {
+    list_remove(&t->elem);
+	list_insert_ordered(&ready_list, &t->elem, compare_locks, NULL);
+  }
+
+  intr_set_level(old_level);
 }

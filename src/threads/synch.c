@@ -195,7 +195,7 @@ lock_init (struct lock *lock)
   ASSERT (lock != NULL);
 
   lock->holder = NULL;
-  lock->max_thread_priority = -1;
+  lock->max_thread_priority = PRI_DEFAULT;
   sema_init (&lock->semaphore, 1);
 }
 
@@ -228,19 +228,16 @@ lock_acquire (struct lock *lock)
 
     current_thread->wait_on_lock = lock;
 
-    // lock->max_thread_priority = current_thread->effective_priority > lock->max_thread_priority ? current_thread->effective_priority : lock->max_thread_priority;
-    // printf("Max Priority of Lock: %d\n", lock->max_thread_priority);
-
-    // Donate Priority to all holders -> nested 
-        // printf("\n______________priority: %d, efficitive %d, tid: %d\n", thread_current()->priority, thread_current()->effective_priority, thread_current()->tid);
-
-    // Add the thread to the donations_list of all parents
     while( temp != NULL && temp->max_thread_priority < current_thread->effective_priority  ) {
-      // printf("Donating priority to %d from %d\n", temp->holder->effective_priority, current_thread->effective_priority);
       if( temp->holder != NULL && temp->max_thread_priority < current_thread->effective_priority ) {
-        temp->max_thread_priority = current_thread->effective_priority;
+        lock->max_thread_priority = current_thread->effective_priority;
         temp->holder->effective_priority = current_thread->effective_priority;
-        update_priority(temp->holder);
+        // update_priority(temp->holder);
+    // printf("\npriority: %d, efficitive %d, tid: %d, holder lock id: %d\n", list_entry (list_max (&temp->holder->locks_list, compare_locks, NULL),struct lock, elem)->max_thread_priority, temp->holder->effective_priority, thread_current()->tid, temp->holder->tid);
+
+
+      // printf("Donating priority to %d from %d\n", list_entry (list_max (&temp->holder->locks_list, compare_locks, NULL),struct lock, elem)->max_thread_priority, current_thread->effective_priority);
+        // update_priority(temp->holder);
         // after_thread_unblock();
       } else if(temp->holder == NULL && temp->max_thread_priority < current_thread->effective_priority) {
 temp->max_thread_priority = current_thread->effective_priority;
@@ -256,9 +253,8 @@ temp->max_thread_priority = current_thread->effective_priority;
   sema_down (&lock->semaphore);
   old_level = intr_disable ();
   lock->holder = thread_current ();
-    // printf("\npriority: %d, efficitive %d, tid: %d\n", thread_current()->priority, thread_current()->effective_priority, thread_current()->tid);
 
-  list_insert_ordered (&thread_current ()->locks_list, &lock->elem, compare_locks, NULL);
+  list_push_front (&lock->holder->locks_list, &lock->elem);
   // thread_current()->wait_on_lock = NULL;
 
 

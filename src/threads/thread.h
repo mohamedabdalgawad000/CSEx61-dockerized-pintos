@@ -153,4 +153,7 @@ void after_thread_unblock (void);
 
 void update_priority (struct thread *t);
 
+void
+thread_donate_priority(struct thread *t);
+
 #endif /* threads/thread.h */
