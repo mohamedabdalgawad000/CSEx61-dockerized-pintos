@@ -237,8 +237,8 @@ lock_acquire (struct lock *lock)
       // printf("Donating priority to %d from %d\n", temp->holder->effective_priority, current_thread->effective_priority);
       if( temp->holder->effective_priority < current_thread->effective_priority ) {
         temp->holder->effective_priority = current_thread->effective_priority;
-        update_priority(temp->holder);
-        after_thread_unblock();
+        // update_priority(temp->holder);
+        // after_thread_unblock();
       }
       temp = temp->holder->wait_on_lock;
 
