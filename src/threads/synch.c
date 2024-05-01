@@ -207,13 +207,15 @@ lock_init (struct lock *lock)
    interrupt handler.  This function may be called with
    interrupts disabled, but interrupts will be turned back on if
    we need to sleep. */
+
+
+
 void
 lock_acquire (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
-
   enum intr_level old_level = intr_disable ();
 
 
@@ -221,13 +223,13 @@ lock_acquire (struct lock *lock)
 
   struct lock* temp = lock;
 
-
   // Lock is free -> acquire it
   if( lock->holder != NULL ) {
 
     current_thread->wait_on_lock = lock;
 
     lock->max_thread_priority = current_thread->effective_priority > lock->max_thread_priority ? current_thread->effective_priority : lock->max_thread_priority;
+
 
     // Donate Priority to all holders -> nested 
     // Add the thread to the donations_list of all parents
@@ -239,6 +241,7 @@ lock_acquire (struct lock *lock)
       temp = temp->holder->wait_on_lock;
 
     }
+msg("\nok1\n");
 
   }
 
@@ -246,7 +249,7 @@ lock_acquire (struct lock *lock)
 
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
-  list_insert_ordered (&thread_current ()->locks_list, &lock->elem, compare_locks, NULL);
+  // list_insert_ordered (&thread_current ()->locks_list, &lock->elem, compare_locks, NULL);
   thread_current()->wait_on_lock = NULL;
 }
 
@@ -283,16 +286,18 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
 
   enum intr_level old_level = intr_disable ();
-  
-  list_remove (&lock->elem);
-
-  if( list_size(&lock->semaphore.waiters) == 1 ) {
-    lock->max_thread_priority = -1;
-  } else if ( list_size(&lock->semaphore.waiters) > 1 ) {
-    struct thread* thread_2nd = list_entry( list_begin(&lock->semaphore.waiters)->next, struct thread, elem);
-
-    lock->max_thread_priority = thread_2nd->effective_priority;
+  if( !list_empty(&thread_current()->locks_list) ) {
+  // printf("\n%d\n", thread_current()->effective_priority);
+      list_remove (&lock->elem);
   }
+
+  // if( list_size(&lock->semaphore.waiters) == 1 ) {
+  //   lock->max_thread_priority = -1;
+  // } else if ( list_size(&lock->semaphore.waiters) > 1 ) {
+  //   // struct thread* thread_2nd = list_entry( list_begin(&lock->semaphore.waiters), struct thread, elem);
+
+  //   // lock->max_thread_priority = thread_2nd->effective_priority;
+  // }
 
   intr_set_level (old_level);
 
