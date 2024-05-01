@@ -102,6 +102,44 @@ thread_init (void)
   initial_thread->tid = allocate_tid ();
 }
 
+static void
+init_thread (struct thread *t, const char *name, int priority)
+{
+
+
+  enum intr_level old_level;
+
+  ASSERT (t != NULL);
+  ASSERT (PRI_MIN <= priority && priority <= PRI_MAX);
+  ASSERT (name != NULL);
+
+  memset (t, 0, sizeof *t);
+  t->status = THREAD_BLOCKED;
+  strlcpy (t->name, name, sizeof t->name);
+  t->stack = (uint8_t *) t + PGSIZE;
+  t->priority = priority;
+
+
+  t->effective_priority = priority;
+  list_init (&t->donations_list);
+  t->wait_on_lock = NULL;
+
+
+
+
+  t->magic = THREAD_MAGIC;
+
+  old_level = intr_disable ();
+
+  list_insert_ordered (&all_list, &t->allelem, comparator, NULL);
+
+  // list_push_back (&all_list, &t->allelem);
+
+
+  intr_set_level (old_level);
+}
+
+
 /* Starts preemptive thread scheduling by enabling interrupts.
    Also creates the idle thread. */
 void
@@ -168,6 +206,8 @@ tid_t
 thread_create (const char *name, int priority,
                thread_func *function, void *aux) 
 {
+
+
   struct thread *t;
   struct kernel_thread_frame *kf;
   struct switch_entry_frame *ef;
@@ -184,6 +224,9 @@ thread_create (const char *name, int priority,
   /* Initialize thread. */
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
+
+  // our solution
+    t->ticks_blocked = 0;
 
   /* Stack frame for kernel_thread(). */
   kf = alloc_frame (t, sizeof *kf);
@@ -262,11 +305,89 @@ thread_unblock (struct thread *t)
   intr_set_level (old_level);
 }
 
+/* Function for thread priority comparison. */
+bool
+thread_cmp_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
+{
+		return list_entry(a, struct thread, elem)->priority > list_entry(b, struct thread, elem)->priority;
+}
+
+/* Donate the priority of current thread to thread t. */
+void
+thread_donate_priority(struct thread *t)
+{
+  enum intr_level old_level = intr_disable();
+  thread_update_priority(t);
+ 
+  /* Remove the old t and insert the new one in order */ 
+  if (t->status == THREAD_READY)
+  {
+    list_remove(&t->elem);
+	list_insert_ordered(&ready_list, &t->elem, comparator, NULL);
+  }
+
+  intr_set_level(old_level);
+}
 /* Returns the name of the running thread. */
 const char *
 thread_name (void) 
 {
   return thread_current ()->name;
+}
+
+/* Make the thread hold the lock. */
+void
+thread_hold_lock(struct lock *lock)
+{
+  enum intr_level old_level = intr_disable();
+  struct thread *cur = thread_current();
+  list_insert_ordered(&cur->locks_holding, &lock->elem, comparator, NULL);
+
+  /* Donate the lock's priority */
+  if (cur->priority < lock->max_priority)
+  {
+    cur->priority = lock->max_priority;
+	thread_yield();
+  }
+
+  intr_set_level(old_level);
+}
+
+
+void
+thread_remove_lock(struct lock *lock)
+{
+  enum intr_level old_level = intr_disable();
+
+  list_remove(&lock->elem);
+  thread_update_priority(thread_current());
+  intr_set_level(old_level);
+
+
+}
+
+
+/* Update the thread's priority. */
+void
+thread_update_priority(struct thread *t)
+{
+  enum intr_level old_level = intr_disable();
+  int max_pri = t->effective_priority;
+  int lock_pri;
+
+  /* If the thread is holding locks, pick the one with the highest max_priority.
+   * And if this priority is greater than the original base priority,
+   * the real(donated) priority would be updated.*/
+  if (!list_empty(&t->locks_holding))
+  {
+    list_sort(&t->locks_holding, comparator, NULL);
+	lock_pri = list_entry(list_front(&t->locks_holding), struct lock, elem)->max_priority;
+    if (max_pri < lock_pri)
+	  max_pri = lock_pri;
+  }
+  t->priority = max_pri;
+
+  intr_set_level(old_level);
 }
 
 /* Returns the running thread.
@@ -363,12 +484,20 @@ thread_set_priority (int new_priority)
     // If there is no donations set to the original priority
     if (list_empty (&r_t->donations_list))
       r_t->effective_priority = new_priority;
+
+  
+  
     else {
           // Get the highest priority from the donations list and update the priority
       	  int lock_priority = list_entry (list_max (&r_t->donations_list,comparator, NULL),struct thread, elem)->effective_priority;
-          r_t->effective_priority = new_priority > lock_priority ? new_priority : lock_priority;
+          r_t=new_priority > lock_priority ? new_priority : lock_priority;
 
     }
+
+      
+  msg("priority  is    (%d)",new_priority);
+  
+  msg("priority  is    (%d)",&thread_current ()->effective_priority);
 
     thread_current ()->priority = new_priority;
     
@@ -392,30 +521,34 @@ void
 thread_set_nice (int nice UNUSED) 
 {
   /* Not yet implemented. */
+   /* Solution Code */
+  thread_current()->nice = nice;
+  mlfqs_update_priority(thread_current());
+  thread_yield();
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+    /* Solution Code */
+  return thread_current()->nice;
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  /* Solution Code */
+  // return FP_ROUND (FP_MULT_MIX (load_avg, 100));
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  /* Solution Code */
+  // return FP_ROUND (FP_MULT_MIX (thread_current()->recent_cpu, 100));
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -491,33 +624,6 @@ is_thread (struct thread *t)
 
 /* Does basic initialization of T as a blocked thread named
    NAME. */
-static void
-init_thread (struct thread *t, const char *name, int priority)
-{
-  enum intr_level old_level;
-
-  ASSERT (t != NULL);
-  ASSERT (PRI_MIN <= priority && priority <= PRI_MAX);
-  ASSERT (name != NULL);
-
-  memset (t, 0, sizeof *t);
-  t->status = THREAD_BLOCKED;
-  strlcpy (t->name, name, sizeof t->name);
-  t->stack = (uint8_t *) t + PGSIZE;
-  t->priority = priority;
-
-
-  t->effective_priority = priority;
-  list_init (&t->donations_list);
-  t->wait_on_lock = NULL;
-
-
-  t->magic = THREAD_MAGIC;
-
-  old_level = intr_disable ();
-  list_push_back (&all_list, &t->allelem);
-  intr_set_level (old_level);
-}
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
    returns a pointer to the frame's base. */

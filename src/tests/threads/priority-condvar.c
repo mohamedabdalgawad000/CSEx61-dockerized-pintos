@@ -36,6 +36,8 @@ test_priority_condvar (void)
   for (i = 0; i < 10; i++) 
     {
       lock_acquire (&lock);
+      // msg("priority  in test case %d", thread_current()->priority);
+
       msg ("Signaling...");
       cond_signal (&condition, &lock);
       lock_release (&lock);
@@ -48,6 +50,8 @@ priority_condvar_thread (void *aux UNUSED)
   msg ("Thread %s starting.", thread_name ());
   lock_acquire (&lock);
   cond_wait (&condition, &lock);
+
+  
   msg ("Thread %s woke up.", thread_name ());
   lock_release (&lock);
 }
