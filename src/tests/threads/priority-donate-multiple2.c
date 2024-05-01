@@ -65,7 +65,7 @@ static void
 a_thread_func (void *lock_) 
 {
   struct lock *lock = lock_;
-
+  // msg("\nok1\n");
   lock_acquire (lock);
   msg ("Thread a acquired lock a.");
   lock_release (lock);
@@ -77,6 +77,7 @@ b_thread_func (void *lock_)
 {
   struct lock *lock = lock_;
 
+  // msg("\nok2\n");
   lock_acquire (lock);
   msg ("Thread b acquired lock b.");
   lock_release (lock);
@@ -86,5 +87,7 @@ b_thread_func (void *lock_)
 static void
 c_thread_func (void *a_ UNUSED) 
 {
+    // printf("\n%d\n", thread_current()->effective_priority);
+  
   msg ("Thread c finished.");
 }
