@@ -49,6 +49,11 @@ bool comparator(const struct list_elem *list_elem_1,
 
 void remove_from_donations(struct thread *t, void *aux UNUSED);
 
+
+bool compare_sema(const struct list_elem *list_elem_1,
+
+                const struct list_elem *list_elem_2, void *aux UNUSED);
+
 void sema_init(struct semaphore *sema, unsigned value) {
   ASSERT(sema != NULL);
 
@@ -391,7 +396,7 @@ void cond_wait(struct condition *cond, struct lock *lock) {
 
   sema_init(&waiter.semaphore, 0);
   // list_push_back (&cond->waiters, &waiter.elem);
-  list_insert_ordered(&cond->waiters, &waiter.elem, compare_locks, NULL);
+  list_insert_ordered(&cond->waiters, &waiter.elem, compare_sema, NULL);
 
 
   lock_release(lock);
@@ -444,4 +449,15 @@ comparator (const struct list_elem *list_elem_1,
 bool compare_locks (const struct list_elem *lock1, const struct list_elem *lock2, void * aux  UNUSED)
 {
   return list_entry (lock1, struct lock, elem)->max_thread_priority >= list_entry (lock2, struct lock, elem)->max_thread_priority;
+}
+
+
+bool compare_sema(const struct list_elem *elem1, const struct list_elem *elem2,
+
+                  void *aux UNUSED) {
+
+  return list_entry(elem1, struct semaphore_elem, elem)->sema_priority >=
+
+         list_entry(elem2, struct semaphore_elem, elem)->sema_priority;
+
 }

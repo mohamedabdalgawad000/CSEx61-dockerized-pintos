@@ -314,31 +314,30 @@ void thread_foreach(thread_action_func *func, void *aux) {
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void thread_set_priority(int new_priority) {
+
   enum intr_level old_level = intr_disable();
+
+
 
   struct thread *r_t = thread_current();
 
-    r_t->priority = new_priority;
-    // If there is no donations set to the original priority
-    if (list_empty (&r_t->locks_list))
-      r_t->effective_priority = new_priority;
-    else {
-          // Get the highest priority from the donations list and update the priority
-      	  int lock_priority = list_entry (list_max (&r_t->locks_list,comparator, NULL),struct thread, elem)->effective_priority;
-          r_t->effective_priority = new_priority > lock_priority ? new_priority : lock_priority;
 
-    }
 
-    thread_current ()->priority = new_priority;
-    
-  intr_set_level (old_level);
+  r_t->priority = new_priority;
 
+  update_priority(r_t);
+
+  after_thread_unblock();
+
+
+
+  intr_set_level(old_level);
   
   // Check if the main thread is still the highest proirity thread
-  if (!list_empty(&ready_list) &&
-      list_entry(list_front(&ready_list), struct thread, elem)
-              ->effective_priority > thread_get_priority())
-    thread_yield();
+  // if (!list_empty(&ready_list) &&
+  //     list_entry(list_front(&ready_list), struct thread, elem)
+  //             ->effective_priority > thread_get_priority())
+  //   thread_yield();
 }
 
 /* Returns the current thread's priority. */
