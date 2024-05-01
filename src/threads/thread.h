@@ -92,6 +92,7 @@ struct thread
     int effective_priority;
 
     struct list locks_list;
+    struct list locks_list;
       
    struct lock* wait_on_lock;
 
@@ -150,10 +151,5 @@ bool comparator(const struct list_elem *list_elem_1,
                 void *aux UNUSED);
 
 void after_thread_unblock (void);
-
-void update_priority (struct thread *t);
-
-void
-thread_donate_priority(struct thread *t);
 
 #endif /* threads/thread.h */
