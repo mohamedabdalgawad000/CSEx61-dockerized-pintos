@@ -214,7 +214,7 @@ thread_create (const char *name, int priority,
   // Check if the main thread is still the highest proirity thread
   // if( !list_empty (&ready_list) && list_entry (list_front (&ready_list), struct thread, elem)->priority > thread_get_priority () )
   //   thread_yield();
-
+  
   after_thread_unblock();
 
   // if(!thread_get_priority ())
@@ -328,6 +328,7 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
+
   if (cur != idle_thread) 
     list_insert_ordered (&ready_list, &cur->elem, comparator, NULL);
   cur->status = THREAD_READY;
@@ -361,15 +362,15 @@ thread_set_priority (int new_priority)
     struct thread* r_t = thread_current();
 
     r_t->priority = new_priority;
-    update_priority(r_t);
-    after_thread_unblock();
+    // update_priority(r_t);
     
   intr_set_level (old_level);
 
+    after_thread_unblock();
   
-  // Check if the main thread is still the highest proirity thread
-  if( !list_empty (&ready_list) && list_entry (list_front (&ready_list), struct thread, elem)->effective_priority > thread_get_priority () )
-    thread_yield();
+  // // Check if the main thread is still the highest proirity thread
+  // if( !list_empty (&ready_list) && list_entry (list_front (&ready_list), struct thread, elem)->effective_priority > thread_get_priority () )
+  //   thread_yield();
 }
 
 /* Returns the current thread's priority. */
@@ -626,7 +627,8 @@ allocate_tid (void)
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 void after_thread_unblock(void) {
-    list_sort(&ready_list, comparator, NULL);
+    // list_sort(&ready_list, comparator, NULL);
+
   if( !list_empty (&ready_list) && list_entry (list_front (&ready_list), struct thread, elem)->effective_priority > thread_get_priority () ){
     thread_yield();
   }
@@ -635,8 +637,11 @@ void after_thread_unblock(void) {
 
 void update_priority (struct thread *t) {
   if( !list_empty (&t->locks_list) ){
-    int lock_priority = list_entry (list_max (&t->locks_list,compare_locks, NULL),struct lock, elem)->max_thread_priority;
-    t->effective_priority = t->priority > lock_priority ? t->priority : lock_priority;
+    int lock_priority = list_entry (list_max (&t->locks_list, compare_locks, NULL),struct lock, elem)->max_thread_priority;
+    // if( t->effective_priority < t->priority || t->effective_priority < lock_priority )
+      t->effective_priority = t->priority > lock_priority ? t->priority : lock_priority;
+    // printf("\n%d\n", t->effective_priority);
+    
   }
   else
     t->effective_priority = t->priority;
