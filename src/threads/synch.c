@@ -229,7 +229,7 @@ lock_acquire (struct lock *lock)
     current_thread->wait_on_lock = lock;
 
     lock->max_thread_priority = current_thread->effective_priority > lock->max_thread_priority ? current_thread->effective_priority : lock->max_thread_priority;
-
+    // printf("Max Priority of Lock: %d\n", lock->max_thread_priority);
 
     // Donate Priority to all holders -> nested 
     // Add the thread to the donations_list of all parents
@@ -237,11 +237,12 @@ lock_acquire (struct lock *lock)
       // printf("Donating priority to %d from %d\n", temp->holder->effective_priority, current_thread->effective_priority);
       if( temp->holder->effective_priority < current_thread->effective_priority ) {
         temp->holder->effective_priority = current_thread->effective_priority;
+        update_priority(temp->holder);
+        after_thread_unblock();
       }
       temp = temp->holder->wait_on_lock;
 
     }
-msg("\nok1\n");
 
   }
 
@@ -249,8 +250,10 @@ msg("\nok1\n");
 
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
-  // list_insert_ordered (&thread_current ()->locks_list, &lock->elem, compare_locks, NULL);
+  list_insert_ordered (&thread_current ()->locks_list, &lock->elem, compare_locks, NULL);
   thread_current()->wait_on_lock = NULL;
+  update_priority(lock->holder);
+  after_thread_unblock();
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -286,18 +289,12 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
 
   enum intr_level old_level = intr_disable ();
+
   if( !list_empty(&thread_current()->locks_list) ) {
   // printf("\n%d\n", thread_current()->effective_priority);
       list_remove (&lock->elem);
+      update_priority(lock->holder);  
   }
-
-  // if( list_size(&lock->semaphore.waiters) == 1 ) {
-  //   lock->max_thread_priority = -1;
-  // } else if ( list_size(&lock->semaphore.waiters) > 1 ) {
-  //   // struct thread* thread_2nd = list_entry( list_begin(&lock->semaphore.waiters), struct thread, elem);
-
-  //   // lock->max_thread_priority = thread_2nd->effective_priority;
-  // }
 
   intr_set_level (old_level);
 

@@ -151,6 +151,6 @@ bool comparator(const struct list_elem *list_elem_1,
 
 void after_thread_unblock (void);
 
-
+void update_priority (struct thread *t);
 
 #endif /* threads/thread.h */
