@@ -228,17 +228,20 @@ lock_acquire (struct lock *lock)
 
     current_thread->wait_on_lock = lock;
 
-    lock->max_thread_priority = current_thread->effective_priority > lock->max_thread_priority ? current_thread->effective_priority : lock->max_thread_priority;
+    // lock->max_thread_priority = current_thread->effective_priority > lock->max_thread_priority ? current_thread->effective_priority : lock->max_thread_priority;
     // printf("Max Priority of Lock: %d\n", lock->max_thread_priority);
 
     // Donate Priority to all holders -> nested 
     // Add the thread to the donations_list of all parents
-    while( temp != NULL && temp->holder != NULL ) {
+    while( temp != NULL  ) {
       // printf("Donating priority to %d from %d\n", temp->holder->effective_priority, current_thread->effective_priority);
-      if( temp->holder->effective_priority < current_thread->effective_priority ) {
+      if( temp->holder != NULL && temp->max_thread_priority < current_thread->effective_priority ) {
+        temp->max_thread_priority = current_thread->effective_priority;
         temp->holder->effective_priority = current_thread->effective_priority;
         // update_priority(temp->holder);
         // after_thread_unblock();
+      } else if(temp->holder == NULL && temp->max_thread_priority < current_thread->effective_priority) {
+temp->max_thread_priority = current_thread->effective_priority;
       }
       temp = temp->holder->wait_on_lock;
 
@@ -252,6 +255,20 @@ lock_acquire (struct lock *lock)
   lock->holder = thread_current ();
   list_insert_ordered (&thread_current ()->locks_list, &lock->elem, compare_locks, NULL);
   thread_current()->wait_on_lock = NULL;
+
+  // if( list_empty(&lock->semaphore.waiters) ){
+  //   lock->max_thread_priority = -1;
+  // } else {
+  //   // lock->max_thread_priority = list_entry(list_begin(&lock->semaphore.waiters), struct thread, elem);
+  //    struct thread* thread_item = list_entry(list_max(&lock->semaphore.waiters, comparator, NULL), struct thread, elem);
+  //   lock->max_thread_priority = lock->max_thread_priority > thread_item->effective_priority ? lock->max_thread_priority : thread_item->effective_priority;
+  //   printf("Max Priority of Lock: %d\n", lock->max_thread_priority);
+  // }
+
+  if( lock->max_thread_priority > current_thread->effective_priority ) {
+    current_thread->effective_priority = lock->max_thread_priority;
+  }
+
   update_priority(lock->holder);
   after_thread_unblock();
 }

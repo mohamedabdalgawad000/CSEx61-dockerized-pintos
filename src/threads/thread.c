@@ -626,6 +626,7 @@ allocate_tid (void)
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 void after_thread_unblock(void) {
+    list_sort(&ready_list, comparator, NULL);
   if( !list_empty (&ready_list) && list_entry (list_front (&ready_list), struct thread, elem)->effective_priority > thread_get_priority () ){
     thread_yield();
   }
