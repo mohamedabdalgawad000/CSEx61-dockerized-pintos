@@ -320,11 +320,11 @@ void thread_set_priority(int new_priority) {
 
     r_t->priority = new_priority;
     // If there is no donations set to the original priority
-    if (list_empty (&r_t->donations_list))
+    if (list_empty (&r_t->locks_list))
       r_t->effective_priority = new_priority;
     else {
           // Get the highest priority from the donations list and update the priority
-      	  int lock_priority = list_entry (list_max (&r_t->donations_list,comparator, NULL),struct thread, elem)->effective_priority;
+      	  int lock_priority = list_entry (list_max (&r_t->locks_list,comparator, NULL),struct thread, elem)->effective_priority;
           r_t->effective_priority = new_priority > lock_priority ? new_priority : lock_priority;
 
     }
@@ -443,7 +443,7 @@ static void init_thread(struct thread *t, const char *name, int priority) {
   t->priority = priority;
 
   t->effective_priority = priority;
-  list_init (&t->donations_list);
+  list_init (&t->locks_list);
   t->wait_on_lock = NULL;
 
   t->magic = THREAD_MAGIC;
@@ -557,7 +557,7 @@ static tid_t allocate_tid(void) {
 uint32_t thread_stack_ofs = offsetof(struct thread, stack);
 
 void after_thread_unblock(void) {
-  list_sort(&ready_list, comparator, NULL);
+  // list_sort(&ready_list, comparator, NULL);
   if (!list_empty(&ready_list) &&
       list_entry(list_front(&ready_list), struct thread, elem)
               ->effective_priority > thread_get_priority()) {
@@ -565,17 +565,6 @@ void after_thread_unblock(void) {
   }
 }
 
-void update_priority(struct thread *t) {
-  if (!list_empty(&t->locks_list)) {
-    int lock_priority =
-        list_entry(list_max(&t->locks_list, compare_locks, NULL), struct lock,
-                   elem)
-            ->max_thread_priority;
-    t->effective_priority =
-        t->priority > lock_priority ? t->priority : lock_priority;
-  } else
-    t->effective_priority = t->priority;
-}
 
 void update_priority (struct thread *t) {
   enum intr_level old_level =  intr_disable();
