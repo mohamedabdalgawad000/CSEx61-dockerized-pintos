@@ -322,11 +322,11 @@ void thread_set_priority(int new_priority) {
 
     r_t->priority = new_priority;
     // If there is no donations set to the original priority
-    if (list_empty (&r_t->donations_list))
+    if (list_empty (&r_t->locks_list))
       r_t->effective_priority = new_priority;
     else {
           // Get the highest priority from the donations list and update the priority
-      	  int lock_priority = list_entry (list_max (&r_t->donations_list,comparator, NULL),struct thread, elem)->effective_priority;
+      	  int lock_priority = list_entry (list_max (&r_t->locks_list,comparator, NULL),struct thread, elem)->effective_priority;
           r_t->effective_priority = new_priority > lock_priority ? new_priority : lock_priority;
 
     }
@@ -443,7 +443,7 @@ static void init_thread(struct thread *t, const char *name, int priority) {
   t->priority = priority;
 
   t->effective_priority = priority;
-  list_init (&t->donations_list);
+  list_init (&t->locks_list);
   t->wait_on_lock = NULL;
 
   t->magic = THREAD_MAGIC;
@@ -559,4 +559,34 @@ uint32_t thread_stack_ofs = offsetof(struct thread, stack);
 void after_thread_unblock(void) {
   if( !list_empty (&ready_list) && list_entry (list_front (&ready_list), struct thread, elem)->effective_priority > thread_get_priority () )
     thread_yield();
+}
+
+void update_priority (struct thread *t) {
+  enum intr_level old_level =  intr_disable();
+    // list_sort(&t->locks_list, compare_locks, NULL);
+
+  if( !list_empty (&t->locks_list) ){
+    int lock_priority = -1;
+
+    struct list_elem *e1;
+
+    ASSERT (intr_get_level () == INTR_OFF);
+
+    for (e1 = list_begin (&t->locks_list); e1 != list_end (&t->locks_list); e1 = list_next (e1))
+      {
+        struct lock *l1 = list_entry (e1, struct lock, elem);
+          
+        lock_priority = l1->max_thread_priority > lock_priority ? l1->max_thread_priority : lock_priority;
+      }
+  
+
+    // int lock_priority = list_entry (list_max (&t->locks_list, compare_locks, NULL),struct lock, elem)->max_thread_priority;
+    // printf("\npriority: %d, efficitive %d, tid: %d\n", thread_current()->priority, thread_current()->effective_priority, lock_priority);
+
+      t->effective_priority = t->priority > lock_priority ? t->priority : lock_priority;
+  }
+  else
+    t->effective_priority = t->priority;
+    
+  intr_set_level (old_level);
 }
