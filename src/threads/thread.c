@@ -362,7 +362,7 @@ thread_set_priority (int new_priority)
     struct thread* r_t = thread_current();
 
     r_t->priority = new_priority;
-    // update_priority(r_t);
+    update_priority(r_t);
     
   intr_set_level (old_level);
 
