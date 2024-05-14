@@ -466,7 +466,8 @@ init_thread (struct thread *t, const char *name, int priority)
 
   t->parent = NULL;
   list_init( &t->childern_list );
-
+  sema_init(&t->waiting_for_child, 0);
+  t->exit_status = t->status;
 
   t->magic = THREAD_MAGIC;
 
@@ -590,15 +591,28 @@ allocate_tid (void)
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
 
-struct thread* get_thread_by_pid (tid_t pid) {
+struct thread* get_child_by_pid (tid_t pid) {
 
       struct thread* temp;
       temp->tid = -1;
       struct list_elem *e1;
 
-      for (e1 = list_begin (&all_list); e1 != list_end (&all_list); e1 = list_next (e1))
+      struct thread* parent = thread_current();
+
+      // for (e1 = list_begin (&all_list); e1 != list_end (&all_list); e1 = list_next (e1))
+      // {
+      //   struct thread *l1 = list_entry (e1, struct thread, allelem);
+        
+      //   if( pid == l1->tid ) {
+      //     temp = l1;
+      //     break;
+      //   }
+        
+      // }
+
+      for (e1 = list_begin (&parent->childern_list); e1 != list_end (&parent->childern_list); e1 = list_next (e1))
       {
-        struct thread *l1 = list_entry (e1, struct thread, elem);
+        struct thread *l1 = list_entry (e1, struct thread, sibling);
         
         if( pid == l1->tid ) {
           temp = l1;

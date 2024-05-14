@@ -98,6 +98,9 @@ struct thread
    struct list childern_list;
    struct list_elem sibling;
 
+   struct semaphore* waiting_for_child;
+   enum thread_status exit_status;
+
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -145,7 +148,7 @@ int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
 
-struct thread* get_thread_by_pid (tid_t pid);
+struct thread* get_child_by_pid (tid_t pid);
 
 
 #endif /* threads/thread.h */

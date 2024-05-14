@@ -88,13 +88,22 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  thread_foreach();
   
-  while ( true )
-  {
-    thread_yield();
-  }
-  
+  // struct thread* child_thread = get_child_by_pid(child_thread);
+
+  // struct thread* parent = thread_current();
+
+  // if ( child_thread->tid == -1 ) {
+  //   return -1;
+  // }
+
+  // sema_down(&parent->waiting_for_child);
+
+  // list_remove(&child_thread->sibling);
+
+  // child_thread->parent = NULL;
+
+  // return child_thread->exit_status;
   return -1;
 }
 

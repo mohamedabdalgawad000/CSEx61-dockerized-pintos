@@ -16,15 +16,19 @@ static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
   printf ("system call!\n");
-  int systemCallType = (int) f->esp;
-  switch (systemCallType)
-  {
-  case SYS_WAIT:
-     thread_yield();
-    break;
+  // int systemCallType = (int) f->esp;
+  // switch (systemCallType)
+  // {
+  // case SYS_WAIT:
+  //   wait();
+  //   break;
   
-  default:
-    break;
-  }
+  // case SYS_EXIT:
+  //   sema_up(&thread_current()->parent->waiting_for_child);
+  //   break;
+
+  // default:
+  //   break;
+  // }
   thread_exit ();
 }
