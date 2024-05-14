@@ -78,6 +78,8 @@ exit (int status)
 pid_t
 exec (const char *file)
 {
+    msg("\nok\n");
+
   return (pid_t) syscall1 (SYS_EXEC, file);
 }
 

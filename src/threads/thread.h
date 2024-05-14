@@ -98,8 +98,11 @@ struct thread
    struct list childern_list;
    struct list_elem sibling;
 
+   tid_t child_pid_wait;
    struct semaphore* waiting_for_child;
-   enum thread_status exit_status;
+   int exit_status;
+
+   bool creation_success;
 
 
 #ifdef USERPROG
