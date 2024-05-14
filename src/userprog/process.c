@@ -88,7 +88,9 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  while (true)
+  thread_foreach();
+  
+  while ( true )
   {
     thread_yield();
   }
