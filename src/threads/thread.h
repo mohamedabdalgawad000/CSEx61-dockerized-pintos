@@ -98,6 +98,9 @@ struct thread
    struct list childern_list;
    struct list_elem sibling;
 
+   struct semaphore* waiting_for_child;
+   enum thread_status exit_status;
+
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
