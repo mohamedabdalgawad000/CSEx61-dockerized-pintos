@@ -104,11 +104,15 @@ struct thread
 
    bool creation_success;
 
+   struct file *current_file;                  /* Pointer to the file that the thread is currently executing */
+   struct list files_list;             /* List of files opened by sysCall sys_open */
+   int fileDir;
 
-#ifdef USERPROG
+
+// #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
-#endif
+// #endif
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
