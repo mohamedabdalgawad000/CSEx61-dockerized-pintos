@@ -282,17 +282,20 @@ static void syscall_handler(struct intr_frame *f UNUSED)
 {
   msg("\nokok\n");
   // if (!valid_stack_ptr(f)) sys_exit(-1);
-  // switch (*(int *)f->esp) {
-  // case SYS_CREATE: wrapperCreate(f);  break;
-  // case SYS_REMOVE: wrapperRemove(f);  break;
-  // case SYS_OPEN: wrapperOpen(f);  break;  
-  // case SYS_FILESIZE: wrapperFilesize(f);  break;
-  // case SYS_READ: wrapperRead(f);  break;
-  // case SYS_WRITE: wrapperWrite(f);  break;
-  // case SYS_SEEK: sys_seek(f);   break;
-  // case SYS_TELL: sys_tell(f);   break;
-  // case SYS_CLOSE: wrapperClose(f);  break;
-  // default: sys_exit(-1);  break;
-  // }
+  switch (*(int *)f->esp) {
+  case SYS_CREATE: wrapperCreate(f);  break;
+  case SYS_REMOVE: wrapperRemove(f);  break;
+  case SYS_OPEN: wrapperOpen(f);  break;  
+  case SYS_FILESIZE: wrapperFilesize(f);  break;
+  case SYS_READ: wrapperRead(f);  break;
+  case SYS_WRITE: wrapperWrite(f);  break;
+  case SYS_SEEK: sys_seek(f);   break;
+  case SYS_TELL: sys_tell(f);   break;
+  case SYS_CLOSE: wrapperClose(f);  break;
+  case SYS_WAIT:     
+  f->eax = process_wait(f);
+    break;
+  default: sys_exit(-1);  break;
+  }
   thread_exit();
 }

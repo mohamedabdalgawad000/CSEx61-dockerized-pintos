@@ -466,6 +466,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
 
 
+  t->child_pid_wait = NULL;
+  t->creation_success = false;
   struct semaphore temp;
   t->parent = NULL;
   list_init( &t->childern_list );
