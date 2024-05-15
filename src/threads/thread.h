@@ -99,7 +99,7 @@ struct thread
    struct list_elem sibling;
 
    tid_t child_pid_wait;
-   struct semaphore* waiting_for_child;
+   struct semaphore *waiting_for_child;
    int exit_status;
 
    bool creation_success;

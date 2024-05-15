@@ -463,11 +463,13 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
 
+  // struct semaphore temp;
 
   t->parent = NULL;
   list_init( &t->childern_list );
-  t->waiting_for_child = NULL;
-  t->exit_status = t->status;
+
+  sema_init( t->waiting_for_child, 0 );
+  t->exit_status = -1;
 
   t->magic = THREAD_MAGIC;
 
