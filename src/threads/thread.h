@@ -94,6 +94,9 @@ struct thread
     struct list_elem elem;              /* List element. */
 
 
+   
+   int64_t wakeup_ticks;
+
    struct thread* parent;
    struct list childern_list;
    struct list_elem sibling;
