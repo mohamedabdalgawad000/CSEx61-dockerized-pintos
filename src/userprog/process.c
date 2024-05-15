@@ -108,7 +108,7 @@ process_wait (tid_t child_tid UNUSED)
   // return child_thread->exit_status;
   while (1)
   {
-    /* code */
+    1
   }
   
   return -1;

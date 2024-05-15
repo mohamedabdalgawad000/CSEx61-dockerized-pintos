@@ -465,6 +465,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
 
+  t->wakeup_ticks = 0;
 
   struct semaphore temp;
   t->parent = NULL;
